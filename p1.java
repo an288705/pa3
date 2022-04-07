@@ -7,7 +7,7 @@ class p1
 {
     public static AtomicMarkableReference<Node> head = new AtomicMarkableReference<Node>(new Node(0), false);
     public static AtomicInteger presentCount = new AtomicInteger(0);
-    public static int numPresents = 800;
+    public static int numPresents = 500000;
     public static void main(String[] args)
     {
         Runnable servant = ()->{
@@ -22,23 +22,9 @@ class p1
                 }
                 else
                 {
-                    //System.out.println("adding "+String.valueOf(present));
-                    //spin lock until present is 
-                    //added to concurrent ll
-                    // while(!add(present))
-                    // {
-                    //     //System.out.println("spinning add");
-                    // }
+                    add(present);
+                    remove(present);
 
-                    //System.out.println("added "+String.valueOf(present)+" to ll");
-                    //spin lock until present is 
-                    //removed from concurrent ll
-                    while(!remove(present))
-                    {
-                        //System.out.println("spinning remove");
-                    }
-
-                    // System.out.println("removed "+String.valueOf(present)+" from ll");
                     //find if present was in concurrent ll
                 }
             }
@@ -52,23 +38,25 @@ class p1
         for(int i=0;i<N;i++)
         {
             threadList.add(new Thread(servant));
-            threadList.get(i).start();          
-        }
-
-        for(int i=1;i<numPresents+1;i++)
-        {
-            add(i);
-        }
-
-        while(presentCount.get()<=numPresents)
-        {
-            //wait
+            threadList.get(i).start();    
+            
+            //for testing
+            try{
+                threadList.get(i).join();  
+            }
+            catch(Exception e){
+                System.out.println(e);
+            }
         }
 
         long end = System.nanoTime();
 
-        System.out.println("The servants took "+String.valueOf((end-start)/1000000000)+" seconds to make thank you cards");
-        printList();
+        while(presentCount.get()<numPresents)
+        {
+            //wait
+        }
+
+        System.out.println("The servants took "+String.valueOf((end-start)/1000000)+" milliseconds to make thank you cards");
     }
 
     public static void printList()
@@ -121,24 +109,34 @@ class p1
             Window window = new Window();
             window.find(head, key);
             Node pred = window.pred, curr = window.curr;
-            //System.out.println(curr.key);
+            //System.out.println(curr.key); //1000000 means not added yet
+    
             if (curr==null || curr.key != key) 
             {
                 //someone already removed it
+                // System.out.println("already removed");
                 return false;
             } 
             else 
             {
                 Node succ = curr.next.getReference();
                 snip = curr.next.compareAndSet(succ, succ, false, true);
-                if (!snip) continue;
-                //System.out.println(pred);
-                if(pred.next.compareAndSet(curr, succ, false, false));
+                if (!snip) 
                 {
-                    //System.out.println("removed "+String.valueOf(curr.key));
-                    return true;
+                    //either its marked for deletion or already deleted
+                    //System.out.println("diff is "+String.valueOf(succ.key-curr.key)+" (positive val means marked)");
+                    continue;
                 }
-                        
+
+                /* 
+                don't worry about compareAndSet succeeding
+                if expectedReference is not curr, then someone
+                already deleted curr. if expected mark is
+                not false, then someone is already in 
+                proccess of deleting 
+                */
+                pred.next.compareAndSet(curr, succ, false, false);
+                return true;      
             }
         }
     }          
