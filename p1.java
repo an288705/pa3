@@ -51,7 +51,7 @@ class p1
 
         long end = System.nanoTime();
 
-        while(presentCount.get()<numPresents)
+        while(presentCount.get()<=numPresents)
         {
             //wait
         }
