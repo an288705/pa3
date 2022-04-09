@@ -164,11 +164,18 @@ class p1
                     snip = pred.next.compareAndSet(curr, succ, false, false);
                     if (!snip) continue retry; 
                     curr = succ;
-                    if(succ.key!=1000000)
+                    if(curr.key!=1000000)
                     {
-                        //advance if not end of list and update marked
+                        //advance if not end of list and not marked
                         succ = curr.next.get(marked); 
                         //System.out.println(marked[0]);
+                    }
+                    else
+                    {
+                        //deleted all nodes up until end
+                        //of list. return window
+                        //System.out.println(String.valueOf(pred.key)+" "+String.valueOf(curr.key));
+                        return new Window(pred, curr);
                     }
                 }       
                 pred = curr;
