@@ -41,12 +41,12 @@ class p1
             threadList.get(i).start();    
             
             //for testing
-            try{
-                threadList.get(i).join();  
-            }
-            catch(Exception e){
-                System.out.println(e);
-            }
+            // try{
+            //     threadList.get(i).join();  
+            // }
+            // catch(Exception e){
+            //     System.out.println(e);
+            // }
         }
 
         long end = System.nanoTime();
@@ -57,6 +57,7 @@ class p1
         }
 
         System.out.println("The servants took "+String.valueOf((end-start)/1000000)+" milliseconds to make thank you cards");
+        //printList();
     }
 
     public static void printList()
@@ -76,8 +77,7 @@ class p1
     {
         while (true) 
         {
-            Window window = new Window();
-            window.find(head, key);
+            Window window = find(head.getReference(),key);
             Node pred = window.pred, curr = window.curr;
             //System.out.println(curr.key);
             if (curr.key == key) 
@@ -89,13 +89,18 @@ class p1
             {
                 //curr should be greater than new
                 Node node = new Node(key);
-                //System.out.println(node);
-                //System.out.println(pred);
+                // System.out.println(node.key);
+                // System.out.println(pred.key);
                 node.next = new AtomicMarkableReference<Node>(curr, false);
 
-                if (pred.next.compareAndSet(curr, node, false, false)) 
+                if(pred.next.compareAndSet(curr, node, false, false)) 
                 {
+                    //System.out.println("added "+String.valueOf(node.key));
                     return true;
+                }
+                else
+                {
+                    //System.out.println("curr "+String.valueOf(curr.key)+" expected "+String.valueOf(pred.next.getReference().key)+" new "+String.valueOf(node.key));
                 }
             }
         }
@@ -106,40 +111,74 @@ class p1
         boolean snip; 
         while (true) 
         {
-            Window window = new Window();
-            window.find(head, key);
+            Window window = find(head.getReference(),key);
             Node pred = window.pred, curr = window.curr;
             //System.out.println(curr.key); //1000000 means not added yet
     
             if (curr==null || curr.key != key) 
             {
                 //someone already removed it
-                // System.out.println("already removed");
+                //System.out.println("already removed");
                 return false;
             } 
             else 
             {
                 Node succ = curr.next.getReference();
-                snip = curr.next.compareAndSet(succ, succ, false, true);
-                if (!snip) 
-                {
-                    //either its marked for deletion or already deleted
-                    //System.out.println("diff is "+String.valueOf(succ.key-curr.key)+" (positive val means marked)");
-                    continue;
-                }
 
-                /* 
-                don't worry about compareAndSet succeeding
-                if expectedReference is not curr, then someone
-                already deleted curr. if expected mark is
-                not false, then someone is already in 
-                proccess of deleting 
-                */
-                pred.next.compareAndSet(curr, succ, false, false);
-                return true;      
+                if(curr.next.compareAndSet(succ, succ, false, true)) 
+                {
+                    /*
+                    delete if not marked or already deleted. 
+                    if expectedReference is not curr, then someone
+                    already deleted curr. if expected mark is
+                    not false, then someone is already in 
+                    proccess of deleting 
+                    */
+                    pred.next.compareAndSet(curr, succ, false, false);
+                    return true; 
+                }
             }
         }
-    }          
+    } 
+    public static Window find(Node head, int key) 
+    {
+        Node pred = null, curr = null, succ = null;
+        boolean[] marked = {false}; 
+        boolean snip;
+
+        retry: while (true) 
+        {
+            pred = head;
+            curr = head.next.getReference(); 
+            
+            while (curr.key<key) 
+            {
+                //check if next node marked
+                succ = curr.next.get(marked); 
+                while (marked[0]) 
+                {
+                    /*delete all marked nodes before 
+                    finding. if already deleted, 
+                    the list was changed and you 
+                    need to traverse again*/
+                    snip = pred.next.compareAndSet(curr, succ, false, false);
+                    if (!snip) continue retry; 
+                    curr = succ;
+                    if(succ.key!=1000000)
+                    {
+                        //advance if not end of list and update marked
+                        succ = curr.next.get(marked); 
+                        //System.out.println(marked[0]);
+                    }
+                }       
+                pred = curr;
+                curr = succ;
+            }
+
+            return new Window(pred,curr);
+       }
+    }
+                
 }
 
 class Node{
@@ -153,36 +192,36 @@ class Node{
 }
 
 class Window{
-    public Node curr;
     public Node pred;
+    public Node curr;
     
-    Window(){
-        this.curr = null;
-        this.pred = null;
+    Window(Node pred, Node curr){
+        this.pred = pred;
+        this.curr = curr;
     }
 
-    public void find(AtomicMarkableReference<Node> head, int key)
-    {
-        Node pred = head.getReference();
-        Node curr = head.getReference().next.getReference();
-        //System.out.println("(should be 0) curr="+String.valueOf(curr.key));
+    // public void find(AtomicMarkableReference<Node> head, int key)
+    // {
+    //     Node pred = head.getReference();
+    //     Node curr = head.getReference().next.getReference();
+    //     //System.out.println("(should be 0) curr="+String.valueOf(curr.key));
 
 
-        while(curr.key<key)
-        {
-            //System.out.println("curr visiting "+String.valueOf(curr.key));
-            //adjust
-            pred=curr;
-            //advance
-            curr=curr.next.getReference();
-        }
+    //     while(curr.key<key)
+    //     {
+    //         //System.out.println("curr visiting "+String.valueOf(curr.key));
+    //         //adjust
+    //         pred=curr;
+    //         //advance
+    //         curr=curr.next.getReference();
+    //     }
 
-        //store
-        this.curr=curr;
-        this.pred=pred;
+    //     //store
+    //     this.curr=curr;
+    //     this.pred=pred;
 
-        //System.out.println("curr after advance="+String.valueOf(this.curr.key));
-    }
+    //     //System.out.println("curr after advance="+String.valueOf(this.curr.key));
+    // }
 }
 
 // add 1
