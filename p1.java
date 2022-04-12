@@ -7,26 +7,20 @@ class p1
 {
     public static AtomicMarkableReference<Node> head = new AtomicMarkableReference<Node>(new Node(0), false);
     public static AtomicInteger presentCount = new AtomicInteger(0);
+    public static AtomicInteger presentsDone = new AtomicInteger(0);
     public static int numPresents = 500000;
     public static void main(String[] args)
     {
         Runnable servant = ()->{
             //while presents are available
-            while(true)
+            while(presentsDone.getAndIncrement()<numPresents)
             {
                 int present = presentCount.incrementAndGet();
+                add(present);
+                remove(present);
 
-                if(present>numPresents)
-                {
-                    break;
-                }
-                else
-                {
-                    add(present);
-                    remove(present);
+                //find if present was in concurrent ll
 
-                    //find if present was in concurrent ll
-                }
             }
         };
 
@@ -51,7 +45,7 @@ class p1
 
         long end = System.nanoTime();
 
-        while(presentCount.get()<=numPresents)
+        while(presentsDone.get()<numPresents)
         {
             //wait
         }
