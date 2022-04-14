@@ -1,4 +1,6 @@
 import java.util.ArrayList;
+import java.util.Random;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicMarkableReference;
 
@@ -7,24 +9,40 @@ class p1
 {
     public static AtomicMarkableReference<Node> head = new AtomicMarkableReference<Node>(new Node(0), false);
     public static AtomicInteger presentCount = new AtomicInteger(0);
-    public static AtomicInteger presentsDone = new AtomicInteger(0);
+    public static AtomicBoolean check = new AtomicBoolean(false);
     public static int numPresents = 500000;
+    public static int randomGift;
     public static void main(String[] args)
     {
         Runnable servant = ()->{
             //while presents are available
-            while(presentsDone.getAndIncrement()<numPresents)
+            while(presentCount.get()<numPresents)
             {
                 int present = presentCount.incrementAndGet();
                 add(present);
                 remove(present);
 
-                //find if present was in concurrent ll
+                if(check.getAndSet(false))
+                {
+                    //the minotaur has requested
+                    //to check if gift is present 
+                    //in chain. only one servant
+                    //needs to do this
+                    if(contains(randomGift))
+                    {
+                        System.out.println("The gift is present in the chain");
+                    }
+                    else
+                    {
+                        System.out.println("The gift is not present in the chain");
+                    }
+                }
 
             }
         };
 
         ArrayList<Thread> threadList = new ArrayList<Thread>();
+        Random random = new Random();
         head.getReference().next = new AtomicMarkableReference<Node>(new Node(1000000),false);
         int N=4;
         long start = System.nanoTime();
@@ -43,14 +61,17 @@ class p1
             // }
         }
 
-        long end = System.nanoTime();
+        //let the minotaur check if present added
+        randomGift = random.nextInt(500000);
+        check.set(true);
 
-        while(presentsDone.get()<numPresents)
+        while(presentCount.get()<numPresents)
         {
             //wait
         }
 
-        System.out.println("The servants took "+String.valueOf((end-start)/1000000)+" milliseconds to make thank you cards");
+        long end = System.nanoTime();
+        System.out.println("The servants took "+String.valueOf((end-start)/1000000000)+" seconds to make thank you cards");
         //printList();
     }
 
@@ -179,7 +200,23 @@ class p1
             return new Window(pred,curr);
        }
     }
-                
+
+    public static boolean contains(int key) 
+    {
+        boolean[] marked = {false}; 
+        Node curr = head.getReference();
+
+        while (curr.key < key)
+        {
+            curr = curr.next.getReference();
+        }
+
+        if(curr.key!=1000000)
+        {
+            Node succ = curr.next.get(marked);
+        }
+        return (curr.key == key && !marked[0]);
+    }           
 }
 
 class Node{
@@ -200,42 +237,4 @@ class Window{
         this.pred = pred;
         this.curr = curr;
     }
-
-    // public void find(AtomicMarkableReference<Node> head, int key)
-    // {
-    //     Node pred = head.getReference();
-    //     Node curr = head.getReference().next.getReference();
-    //     //System.out.println("(should be 0) curr="+String.valueOf(curr.key));
-
-
-    //     while(curr.key<key)
-    //     {
-    //         //System.out.println("curr visiting "+String.valueOf(curr.key));
-    //         //adjust
-    //         pred=curr;
-    //         //advance
-    //         curr=curr.next.getReference();
-    //     }
-
-    //     //store
-    //     this.curr=curr;
-    //     this.pred=pred;
-
-    //     //System.out.println("curr after advance="+String.valueOf(this.curr.key));
-    // }
 }
-
-// add 1
-// 0 
-
-// new atomicreference(new node(num),false)
-
-// atomicreference
-// -----
-// get -> node -> key
-//             -> next -> atomicreference
-//                         -------
-//                         get -> node -> ...
-//                                     -> ...
-//                         -------
-// ----

@@ -31,15 +31,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 
 public class p2 {
+    public static WaitFreeQueue queue = new WaitFreeQueue(10);
     public static PriorityQueue<Integer> minh = new PriorityQueue<Integer>();
     public static PriorityQueue<Integer> maxh = new PriorityQueue<Integer>((x, y) -> Integer.compare(y, x));
     public static PriorityQueue<Integer> minten = new PriorityQueue<Integer>();
     public static PriorityQueue<Integer> maxten = new PriorityQueue<Integer>((x, y) -> Integer.compare(y, x));
-    public static AtomicBoolean setting = new AtomicBoolean(true);
+    public static AtomicBoolean sensing = new AtomicBoolean(true);
     public static AtomicBoolean reporting = new AtomicBoolean(false);
     public static AtomicInteger tasks = new AtomicInteger(0);
     public static AtomicInteger tasksDone = new AtomicInteger(0);
-    public static WaitFreeQueue queue = new WaitFreeQueue(10);
     public static int time=0;
     public static int prev=-1000; //init to 'null' val
     public static int curr;
@@ -68,7 +68,7 @@ public class p2 {
                         System.out.print(minh.poll());
                         System.out.print(" ");
                     }
-                    System.out.print("\nThe largest temperature difference occured from "+String.valueOf(interval-10)+" to "+String.valueOf(interval)+" minutes");
+                    System.out.print("\nThe largest temperature difference occured from "+String.valueOf(interval-10)+" to "+String.valueOf(interval)+" minutes. The difference was "+String.valueOf(diff));
 
                     //empty data
                     diff=0;
@@ -84,41 +84,34 @@ public class p2 {
             }
         };
 
-        //queue can be modified but not heaps
-
         Runnable sensor = ()->{
             while(true)
             {
-                if(!setting.get() && !reporting.get())
+                if(!sensing.get() && !reporting.get())
                 {
-                    while(tasksDone.get()<5)
+                    while(tasksDone.get()<4)
                     {
                         int task = tasks.getAndIncrement();
 
                         switch(task)
                         {
                             case 0:
-                                //add to q
-                                queue.enq(curr);
-                                tasksDone.getAndIncrement();
-                                break;
-                            case 1:
                                 //add to maxh
                                 maxh.add(curr);
                                 tasksDone.getAndIncrement();
                                 break;
-                            case 2:
+                            case 1:
                                 //add to minh
                                 minh.add(curr);
                                 tasksDone.getAndIncrement();
                                 break;
-                            case 3:
+                            case 2:
                                 //add and remove maxten
                                 maxten.add(curr);
                                 maxten.remove(prev);
                                 tasksDone.getAndIncrement();
                                 break;
-                            case 4:
+                            case 3:
                                 //add and remove minten
                                 minten.add(curr);
                                 minten.remove(prev);
@@ -137,7 +130,7 @@ public class p2 {
                     }
 
                     //everything is done, exit
-                    setting.set(true);
+                    sensing.set(true);
                 }   
             }
         };
@@ -170,13 +163,14 @@ public class p2 {
                 time+=1;
                 System.out.println("Time = "+String.valueOf(time)+" mins");
                 if(time%60==0) reporting.set(true);
-                setting.set(true);
+                sensing.set(true);
+                curr = random.nextInt(171)-100;
+                queue.enq(curr);
+                prev = queue.deq();
                 tasks.set(0);
                 tasksDone.set(0);
-                curr = random.nextInt(171)-100;
-                prev = queue.deq();
-                setting.set(false);
-                TimeUnit.MILLISECONDS.sleep(100);
+                sensing.set(false);
+                TimeUnit.MILLISECONDS.sleep(150);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
