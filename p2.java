@@ -78,7 +78,7 @@ public class p2 {
                     maxten = new PriorityQueue<Integer>((x, y) -> Integer.compare(y, x));
 
                     long end = System.nanoTime();
-                    System.out.println("\nReport compiled in "+String.valueOf((end-start)/1000000)+" milliseconds");
+                    System.out.println("\nReport compiled in "+String.valueOf((end-start)/1000000)+" milliseconds\n");
                     reporting.set(false);      
                 }
             }
@@ -161,8 +161,13 @@ public class p2 {
             //set setting=true every .1 seconds
             try {
                 time+=1;
-                System.out.println("Time = "+String.valueOf(time)+" mins");
-                if(time%60==0) reporting.set(true);
+                
+                if(time%60==0)
+                {
+                    System.out.println("Time = "+String.valueOf(time)+" mins");
+                    reporting.set(true);
+                }
+
                 sensing.set(true);
                 curr = random.nextInt(171)-100;
                 queue.enq(curr);
@@ -170,7 +175,7 @@ public class p2 {
                 tasks.set(0);
                 tasksDone.set(0);
                 sensing.set(false);
-                TimeUnit.MILLISECONDS.sleep(150);
+                TimeUnit.MILLISECONDS.sleep(100);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
